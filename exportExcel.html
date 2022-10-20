@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户端导出带样式Excel文件</title>
+</head>
+
+<link rel="stylesheet" type="text/css" href="./ext-4.2.1/resources/css/ext-all.css">
+<script src="./ext-4.2.1/bootstrap.js"></script>
+<script src="./ext-4.2.1/locale/ext-lang-zh_CN.js"></script>
+<script src="src/xlsx.mini.min.js"></script>
+<script src="src/xlsx-populate.min.js"></script>
+
+<style>
+    table,
+    tr,
+    td {
+        font-family: tahoma, arial, verdana, sans-serif;
+        border-collapse: collapse;
+        border-width: 1px;
+        border-style: solid;
+
+        position: relative;
+        background: white;
+        border-color: #99bce8;
+        color: black;
+        font-size: 12px;
+        text-align: center;
+
+    }
+</style>
+
+<body>
+
+    <table id="report"></table>
+    <button id="exp" onclick="createDownLoadData()">导出项目发样预测表</button>
+
+</body>
+<script>
+    //模拟数据
+    var array = [
+        { "phase": "P1", "start_time": "2022-08-20", "finish_time": "2022-08-26", "config": "1", "stageyield": "1", "input_qty": "100", "trialproduce_time": "2022-08-22", "customerCode": "ND18", "projectName": "Twins 2", "PM": "wcadmin", "output_qty": "", "sample_qty": "" },
+        { "phase": "P1", "start_time": "2022-08-20", "finish_time": "2022-08-26", "config": "1", "stageyield": "1", "input_qty": "100", "trialproduce_time": "2022-08-24", "customerCode": "ND18", "projectName": "Twins 2", "PM": "wcadmin", "output_qty": "50", "sample_qty": "50" },
+        { "phase": "MP", "start_time": "2022-08-25", "finish_time": "2022-09-01", "config": "1", "stageyield": "4", "input_qty": "100", "trialproduce_time": "2022-08-25", "customerCode": "ND18", "projectName": "Twins 2", "PM": "wcadmin", "output_qty": "", "sample_qty": "" },
+        { "phase": "P2", "start_time": "2022-09-01", "finish_time": "2022-09-02", "config": "2", "stageyield": "5", "input_qty": "100", "trialproduce_time": "2022-09-02", "customerCode": "A01", "projectName": "Stellar", "PM": "wcadmin", "output_qty": "", "sample_qty": "" },
+        { "phase": "P1", "start_time": "2022-08-28", "finish_time": "2022-08-29", "config": "1", "stageyield": "1", "input_qty": "100", "trialproduce_time": "2022-08-28", "customerCode": "ND18", "projectName": "Twins 2", "PM": "wcadmin", "output_qty": "", "sample_qty": "" },
+        { "phase": "P1", "start_time": "2022-08-28", "finish_time": "2022-08-29", "config": "1", "stageyield": "1", "input_qty": "", "trialproduce_time": "2022-08-29", "customerCode": "ND18", "projectName": "Twins 2", "PM": "wcadmin", "output_qty": "", "sample_qty": "20" },
+        { "phase": "P2", "start_time": "2022-08-29", "finish_time": "2022-08-30", "config": "2", "stageyield": "2", "input_qty": "200", "trialproduce_time": "2022-08-29", "customerCode": "ND18", "projectName": "Twins 2", "PM": "wcadmin", "output_qty": "", "sample_qty": "" },
+        { "phase": "P2", "start_time": "2022-08-28", "finish_time": "2022-08-28", "config": "2", "stageyield": "3", "input_qty": "300", "trialproduce_time": "2022-08-28", "customerCode": "A01", "projectName": "Stellar", "PM": "wcadmin", "output_qty": "200", "sample_qty": "100" },
+        { "phase": "P2", "start_time": "2022-08-29", "finish_time": "2022-08-29", "config": "2", "stageyield": "5", "input_qty": "100", "trialproduce_time": "2022-08-29", "customerCode": "A01", "projectName": "Stellar", "PM": "wcadmin", "output_qty": "", "sample_qty": "" },
+        { "phase": "MP", "start_time": "2022-08-29", "finish_time": "2022-08-30", "config": "1", "stageyield": "4", "input_qty": "100", "trialproduce_time": "2022-08-29", "customerCode": "ND18", "projectName": "Twins 2", "PM": "wcadmin", "output_qty": "", "sample_qty": "" }];
+    array.sort(function (recordA, recordB) {
+        console.log(recordA.projectName); console.log(recordB.projectName);
+        console.log(recordA.projectName > recordB.projectName);
+        if (recordA.projectName > recordB.projectName)
+            return 1;
+        else if (recordA.projectName < recordB.projectName) {
+            return -1;
+        } else {
+            return 0;
+        }
+
+
+    });
+    var tableInfo = new Map();
+    for (var i in array) {
+        var record = array[i];
+        var start_time = record.start_time;
+        var finish_time = record.finish_time;
+        var phase = record.phase;
+        var config = record.config;
+        var stageyield = record.stageyield;
+        var input_qty = record.input_qty;
+        var output_qty = record.output_qty;
+        var sample_qty = record.sample_qty;
+        var trialproduce_time = record.trialproduce_time;
+        var projectName = record.projectName;
+        var customerCode = record.customerCode;
+        var PM = record.PM;
+        var info = [];
+        if (!tableInfo.get(start_time + "+" + finish_time + "+" + phase + "+" + config)) {
+            info.push(record);
+            tableInfo.set(start_time + "+" + finish_time + "+" + phase + "+" + config, info);
+        } else {
+            info = tableInfo.get(start_time + "+" + finish_time + "+" + phase + "+" + config);
+            info.push(record);
+            tableInfo.set(start_time + "+" + finish_time + "+" + phase + "+" + config, info);
+        }
+
+
+    }
+</script>
+
+<script>
+    //获取两个时间之间的所有日期
+    function getDayAll(startTime, finishTime) {
+        var arr = [];
+        var dates = [];
+        var startD = new Date(startTime);
+        var finishD = new Date(finishTime);
+        var startT = startD.getTime() - 24 * 60 * 60 * 1000;
+        var finishT = finishD.getTime() - 24 * 60 * 60 * 1000;
+
+
+        for (var i = startT; i <= finishT;) {
+            i = i + 24 * 60 * 60 * 1000;
+            arr.push(parseInt(i));
+        }
+        for (var j in arr) {
+            var time = new Date(arr[j]);
+            dates.push(time);
+        }
+        return dates;
+    }
+    //获取两个日期之间的所有星期，每个星期所包含的天数
+    function getWeekAll(startTime, finishTime) {
+        var weekCount = 0;
+        var weeks = [];
+        var countDay = 0;
+        var dates = getDayAll(startTime, finishTime);
+        var currentD;
+
+
+        for (var i = 0; i < dates.length; i++) {
+
+            currentD = dates[i];
+
+            var oneday = currentD.getDay();
+            if (oneday == 0) {
+                weekCount++;
+                weeks[weekCount - 1] = countDay + 1;
+                countDay = 0;
+            } else {
+                countDay++;
+            }
+
+        }
+        if (countDay > 0) {
+            weekCount++;
+            weeks[weekCount - 1] = countDay;
+        }
+        return weeks;
+    }
+    //查询的开始日期和结束日期
+    var queryStartTime = "Sun Aug 21 2022 00:00:00 GMT+0800 (中国标准时间)";
+    var queryFinishTime = "Mon Sep 19 2022 00:00:00 GMT+0800 (中国标准时间)";
+    var weeks = getWeekAll(queryStartTime, queryFinishTime);
+    //获取表格对象
+    var tb = document.getElementById("report");
+    //固定列
+    var tb_colFixed = 8;
+    //动态列
+    var tb_colVary = 0;
+    //固定行
+    var tb_rowFixed = 5;
+    //动态行
+    var tb_rowVary = 0;
+
+    for (var i = 0; i < weeks.length; i++) {
+        tb_colVary = tb_colVary + weeks[i];
+    }
+    console.log("动态列数：" + tb_colVary);
+
+    tb_rowVary = tableInfo.size;
+    console.log("动态行数：" + tb_rowVary);
+
+    //表格清空
+    var len = tb.rows.length;
+    for (var i = 0; i < len; i++) {
+        tb.deleteRow(0);
+
+    }
+    //---------------开始构建表结构-----------------------
+
+    //项目发样预测表
+    var tb_row = tb.insertRow();
+    var tb_cell = tb_row.insertCell();
+    tb_cell.colSpan = tb_colFixed + tb_colVary;
+    tb_cell.innerText = '项目发样预测表';
+
+
+
+    var tb_row = tb.insertRow();
+
+    //固定列
+    for (var i = 0; i < tb_colFixed; i++) {
+
+        var tb_cell = tb_row.insertCell();
+        tb_cell.rowSpan = 4;
+
+        // tb_cell.style.backgroundColor="#ff0000";
+    }
+
+    //发样时间&数量
+    var tb_cell = tb_row.insertCell();
+    tb_cell.colSpan = tb_colVary;
+
+
+    //一年当中第几周
+    var tb_row = tb.insertRow();
+    for (var j = 0; j < weeks.length; j++) {
+
+        var tb_cell = tb_row.insertCell();
+        tb_cell.colSpan = weeks[j];
+    }
+
+    //m月d日
+    var tb_row = tb.insertRow();
+    for (var j = 0; j < tb_colVary; j++) {
+
+        var tb_cell = tb_row.insertCell();
+
+    }
+    //周几
+    var tb_row = tb.insertRow();
+    for (var j = 0; j < tb_colVary; j++) {
+
+        var tb_cell = tb_row.insertCell();
+
+    }
+
+    for (var k = 0; k < tb_rowVary; k++) {
+        //数据行
+        var tb_row = tb.insertRow();
+        for (var i = 0; i < tb_colFixed - 1; i++) {
+
+            var tb_cell = tb_row.insertCell();
+            tb_cell.rowSpan = 3;
+
+        }
+
+        for (var j = 0; j < tb_colVary + 1; j++) {
+
+            var tb_cell = tb_row.insertCell();
+
+        }
+
+        var tb_row = tb.insertRow();
+        for (var j = 0; j < tb_colVary + 1; j++) {
+
+            var tb_cell = tb_row.insertCell();
+
+        }
+
+        var tb_row = tb.insertRow();
+        for (var j = 0; j < tb_colVary + 1; j++) {
+
+            var tb_cell = tb_row.insertCell();
+
+        }
+    }
+
+    //---------------------构建表结构完成-------------------------------------
+
+    //填充数据-标题
+
+
+    tb.rows[1].cells[0].innerText = "序号";
+    tb.rows[1].cells[1].innerText = "项目名称";
+    tb.rows[1].cells[2].innerText = "阶段";
+    tb.rows[1].cells[3].innerText = "客户代码";
+    tb.rows[1].cells[4].innerText = "Config";
+    tb.rows[1].cells[5].innerText = "项目经理";
+    tb.rows[1].cells[6].innerText = "试产良率";
+    tb.rows[1].cells[7].innerText = "投入/产出";
+    tb.rows[1].cells[8].innerText = "发样时间&数量";
+
+    var days = getDayAll(queryStartTime, queryFinishTime);
+    var index = 0;
+    for (var j = 0; j < weeks.length; j++) {
+        var day = days[0 + index];
+        var weekOfYear = Ext.Date.format(day, "W");
+
+        tb.rows[2].cells[j].innerText = "W" + weekOfYear;
+        index = index + weeks[j];
+    }
+    for (var k = 0; k < days.length; k++) {
+        var day = days[k];
+        var month_day = Ext.Date.format(day, "m月d日");
+        var weekDay = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+        tb.rows[3].cells[k].innerText = month_day;
+        tb.rows[4].cells[k].innerText = weekDay[day.getDay()];
+
+    }
+
+    var row = tb_rowFixed;
+    var startDate = queryStartTime;
+    var finishDate = queryFinishTime;
+
+    //填充数据-发样数据
+    var i = 0;
+    var color;
+    tableInfo.forEach(function (value, key, tableInfo) {
+        if (i % 2 == 0) {
+            color = "#ffff33";
+        } else {
+            color = "#ccff33";
+        }
+
+        tb.rows[row].cells[0].innerText = i + 1;
+        var ST;
+        var ET;
+        for (var j = 0; j < value.length; j++) {
+
+            var record = value[j];
+            tb.rows[row].cells[1].innerText = record.projectName;
+            tb.rows[row].cells[2].innerText = record.phase;
+            tb.rows[row].cells[3].innerText = record.customerCode;
+            tb.rows[row].cells[4].innerText = record.config;
+            tb.rows[row].cells[5].innerText = record.PM;
+            tb.rows[row].cells[6].innerText = record.stageyield;
+            tb.rows[row].cells[7].innerText = "投入";
+            tb.rows[row + 1].cells[0].innerText = "产出";
+            tb.rows[row + 2].cells[0].innerText = "发样";
+            var date1 = record.trialproduce_time;
+            ST = record.start_time;
+            console.log(ST + "-- " + startDate + "-- " + (new Date(ST).getTime() < new Date(startDate).getTime()));
+            if (new Date(ST).getTime() < new Date(startDate).getTime()) {
+                ST = startDate;
+            }
+            ET = record.finish_time;
+            console.log(ET + "-- " + finishDate + "-- " + (new Date(ET).getTime() > new Date(finishDate).getTime()));
+            if (new Date(ET).getTime() > new Date(finishDate).getTime()) {
+                ET = finishDate;
+            }
+
+            console.log(record.start_time, record.finish_time);
+
+            var daybetween = getDayAll(startDate, date1).length;
+
+            //console.log(daybetween);
+            if (!Ext.isEmpty(record.input_qty)) {
+                tb.rows[row].cells[8 + daybetween - 1].innerText = record.input_qty;
+
+            }
+            if (!Ext.isEmpty(record.output_qty)) {
+                tb.rows[row + 1].cells[daybetween].innerText = record.output_qty;
+
+            }
+            if (!Ext.isEmpty(record.sample_qty)) {
+                tb.rows[row + 2].cells[daybetween].innerText = record.sample_qty;
+
+            }
+
+        }
+        var ST_ET = getDayAll(ST, ET);//该周期
+        for (var t = 0; t < ST_ET.length; t++) {
+            var day = ST_ET[t];
+            var daybetween = getDayAll(startDate, day).length;
+            tb.rows[row].cells[8 + daybetween - 1].style.background = color;
+            tb.rows[row + 1].cells[daybetween].style.background = color;
+            tb.rows[row + 2].cells[daybetween].style.background = color;
+        }
+
+        row = row + 3;
+        i++;
+    })
+
+
+//-------------------填充数据完成---------------------------------
+
+
+
+
+
+
+</script>
+
+
+<script>
+    //----------------------导出项目发样预测表功能-------------------------
+
+    function workbook2blob(workbook) {
+        // 生成excel的配置项
+        const wopts = {
+            // 要生成的文件类型
+            bookType: "xlsx",
+            // 是否生成Shared String Table，官方解释是，如果开启生成速度会下降，但在低版本IOS设备上有更好的兼容性
+            bookSST: false,
+            type: "binary"
+        };
+        const wbout = XLSX.write(workbook, wopts);
+        // 将字符串转ArrayBuffer
+        function s2ab(s) {
+            const buf = new ArrayBuffer(s.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i !== s.length; ++i) view[i] = s.charCodeAt(i) & 0xff;
+            return buf;
+        }
+        const blob = new Blob([s2ab(wbout)], {
+            type: "application/octet-stream"
+        });
+        return blob;
+    }
+    //为Excel表添加样式
+    function addStyle(workbookBlob, tablefrompage, leftrow, leftcol, rowcount, colcount) {
+        return XlsxPopulate.fromDataAsync(workbookBlob).then((workbook) => {
+            console.log(leftrow);
+            // 循环所有的表
+            workbook.sheets().forEach((sheet) => {
+                // 所有cell居中,修改字体
+                sheet.usedRange().style({
+                    fontFamily: "Arial",
+                    verticalAlignment: "center",
+                    horizontalAlignment: "center",
+                    border: {
+                        style: "thin",
+                        color: "99bce8",
+                        direction: "both"
+                    }
+                });
+                //网页table每一行的单元格下标从0开始，合并单元格注意行号和列号的变化
+                //Excel单元格下标从1开始，合并单元格对行号和列号的索引没影响
+
+                for (var i = 0; i < rowcount * 3; i = i + 3) {
+                    for (var j = 0; j < colcount; j++) {
+                        var bgcolor1 = tablefrompage.rows[leftrow + i].cells[leftcol + j].style.background;//获取table中单元格的着色
+                        if (bgcolor1 == "rgb(255, 255, 51)") {
+                            sheet.cell(leftrow + i + 1, leftcol + j + 1).style({//为excel中sheet单元格着对应颜色
+                                fill: "ffff33"
+                            });
+                        }
+                        if (bgcolor1 == "rgb(204, 255, 51)") {
+                            sheet.cell(leftrow + i + 1, leftcol + j + 1).style({
+                                fill: "ccff33"
+                            });
+                        }
+                        var bgcolor2 = tablefrompage.rows[leftrow + i + 1].cells[j + 1].style.background;
+                        if (bgcolor2 == "rgb(255, 255, 51)") {
+                            sheet.cell(leftrow + i + 1 + 1, leftcol + j + 1).style({
+                                fill: "ffff33"
+                            });
+                        }
+                        if (bgcolor2 == "rgb(204, 255, 51)") {
+                            sheet.cell(leftrow + i + 1 + 1, leftcol + j + 1).style({
+                                fill: "ccff33"
+                            });
+                        }
+                        var bgcolor3 = tablefrompage.rows[leftrow + i + 2].cells[j + 1].style.background;
+                        if (bgcolor3 == "rgb(255, 255, 51)") {
+                            sheet.cell(leftrow + i + 2 + 1, leftcol + j + 1).style({
+                                fill: "ffff33"
+                            });
+                        }
+                        if (bgcolor3 == "rgb(204, 255, 51)") {
+                            sheet.cell(leftrow + i + 2 + 1, leftcol + j + 1).style({
+                                fill: "ccff33"
+                            });
+                        }
+
+
+                    }
+
+                }
+
+            });
+            return workbook.outputAsync().then(
+                (workbookBlob) => URL.createObjectURL(workbookBlob) // 创建blob地址
+            );
+        });
+    }
+    //下载生成的excel表
+    function createDownLoadData() {
+        handleExport().then((url) => {
+            const downloadAnchorNode = document.createElement("a");
+            downloadAnchorNode.setAttribute("href", url);
+            downloadAnchorNode.setAttribute("download", "项目发样预测单.xlsx");
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        });
+    }
+    //创建excel表
+    function handleExport() {
+
+        const wb = XLSX.utils.book_new();
+        const sheet = XLSX.utils.table_to_sheet(document.getElementById('report'));
+        XLSX.utils.book_append_sheet(wb, sheet, "项目发样预测表");
+        const workbookBlob = workbook2blob(wb);
+        // 需要添加样式的行列信息
+        const dataInfo = {
+
+        };
+        return addStyle(workbookBlob, tb, tb_rowFixed, tb_colFixed, tableInfo.size, days.length);
+    }
+//------------导出表功能完成---------------------------
+
+</script>
+
+</html>
